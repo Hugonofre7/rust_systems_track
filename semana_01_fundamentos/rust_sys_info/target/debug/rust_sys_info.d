@@ -1,0 +1,1 @@
+/Users/hugonofre7/Projects/Rust/rust_systems_track/semana_01_fundamentos/rust_sys_info/target/debug/rust_sys_info: /Users/hugonofre7/Projects/Rust/rust_systems_track/semana_01_fundamentos/rust_sys_info/src/main.rs
