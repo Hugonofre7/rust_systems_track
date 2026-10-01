@@ -5,7 +5,9 @@ fn main() {
     println!("Ingresa tu nombre:");
 
     let mut nombre = String::new();
-    io::stdin().read_line(&mut nombre);
+    io::stdin()
+        .read_line(&mut nombre)
+        .expect("Error al leer la entrada");
 
     println!("Hola, {}!", nombre.trim());
 }
