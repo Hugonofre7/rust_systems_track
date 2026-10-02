@@ -1,6 +1,6 @@
 use std::io;
 
-fn main() {
+/*fn main() {
     println!("=== RUST SYS INFO ===");
     println!("Ingresa tu nombre:");
 
@@ -9,5 +9,18 @@ fn main() {
         .read_line(&mut nombre)
         .expect("Error al leer la entrada");
 
-    println!("Hola, {}!", nombre.trim());
+    let nombre = nombre.trim();
+
+    let consultas = 1;
+
+    let consultas = consultas.to_string();
+
+    println!("Usuario: {}", nombre);
+    println!("Consultas realizadas: {}", consultas);
+}
+*/
+fn main() {
+    let edad = 30;
+    edad = 31;
+    println!("{}", edad);
 }
