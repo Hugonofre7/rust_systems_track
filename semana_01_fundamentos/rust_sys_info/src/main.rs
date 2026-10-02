@@ -1,10 +1,8 @@
-use std::io;
-
-use std::io;
+//use std::io;
 
 fn main() {
     let cpu_info: (u32, f64, bool) = (4, 3.2, true);
-    let nucleos: u8 = cpu_info.0; // Intento de asignación u32 a u8 sin 'as'
+    let nucleos: u8 = cpu_info.0 as u8; // Intento de asignación u32 a u8 sin 'as'
 
     println!("Cores: {}", nucleos);
 }
