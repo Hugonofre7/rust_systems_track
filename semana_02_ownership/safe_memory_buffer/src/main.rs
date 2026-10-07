@@ -39,10 +39,11 @@ fn main() {
 }
 */
 
-// ============================================================================
+/*
+//
 // CAPÍTULO 4 - RETO 2/3: Referencias, Préstamo (& / &mut) y Borrow Checker
 // Proyecto: safe_memory_buffer
-// ============================================================================
+//
 
 fn main() {
     let mut log = String::from("evento_red");
@@ -68,4 +69,36 @@ fn main() {
     r3.push_str(" :: CRÍTICO");
 
     println!("Escritura mutable exclusiva -> r3: {}", r3);
+}
+*/
+
+// CAPÍTULO 4 - RETO 3/3: RAII y Trait Drop
+// Proyecto: safe_memory_buffer
+
+struct Buffer {
+    nombre: String,
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        println!(">>> [RAII] Liberando memoria de: {}", self.nombre);
+    }
+}
+
+fn main() {
+    println!("-- Inicio de main --");
+
+    let a = Buffer {
+        nombre: String::from("Buffer_A"),
+    };
+    let b = Buffer {
+        nombre: String::from("Buffer_B"),
+    };
+    let c = Buffer {
+        nombre: String::from("Buffer_C"),
+    };
+
+    a.drop();
+
+    println!("-- Fin de main --");
 }
