@@ -47,17 +47,17 @@ fn main() {
 fn main() {
     let mut log = String::from("evento_red");
 
-    // ------------------------------------------------------------------------
+    //
     // DEMOSTRACIÓN DE ERROR E0502 (Comentado para compilación):
     // Violación de Aliasing + Mutabilidad
-    // ------------------------------------------------------------------------
+    //
     // let r1 = &log;
     // let r2 = &mut log; // Falla: préstamo mutable mientras existe &log
     // println!("{} {}", r1, r2);
 
-    // ------------------------------------------------------------------------
+    //
     // PASO A & B: Referencias inmutables múltiples e inmutabilidad seguida de mutabilidad
-    // ------------------------------------------------------------------------
+    //
     let r1 = &log;
     let r2 = &log;
 
