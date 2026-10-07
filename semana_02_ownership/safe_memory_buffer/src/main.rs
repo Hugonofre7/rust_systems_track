@@ -98,7 +98,8 @@ fn main() {
         nombre: String::from("Buffer_C"),
     };
 
-    a.drop();
+    // DEMOSTRACIÓN DE ERROR E0040 (Comentado para compilación):
+    // a.drop(); // Falla: no se permite la llamada explícita al destructor.
 
     println!("-- Fin de main --");
 }
