@@ -26,11 +26,11 @@ fn main() {
 
     // println!("a.nombre fallará porque fue movido a 'b': {}", a.nombre);
 
-    let p = Paquete {
-        id: 1,
-        nombre: String::from("Paquete_Inmutable"),
-        activo: true,
-    };
+    //let p = Paquete {
+    //    id: 1,
+    //  nombre: String::from("Paquete_Inmutable"),
+    //  activo: true,
+    //};
 
-    p.id = 5; // <--- Intento de mutar un campo de variable declarada sin 'mut'
+    //p.id = 5; // <--- Intento de mutar un campo de variable declarada sin 'mut'
 }
