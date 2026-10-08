@@ -1,0 +1,1 @@
+/Users/hugonofre7/Projects/Rust/rust_systems_track/semana_02_ownership/safe_memory_buffer/target/debug/cap05_structs: /Users/hugonofre7/Projects/Rust/rust_systems_track/semana_02_ownership/safe_memory_buffer/src/bin/cap05_structs.rs

@@ -1,0 +1,1 @@
+/Users/hugonofre7/Projects/Rust/rust_systems_track/semana_02_ownership/safe_memory_buffer/target/debug/cap04_ownership: /Users/hugonofre7/Projects/Rust/rust_systems_track/semana_02_ownership/safe_memory_buffer/src/bin/cap04_ownership.rs
