@@ -35,7 +35,7 @@ fn main() {
     //p.id = 5; // <--- Intento de mutar un campo de variable declarada sin 'mut'
 }
 */
-
+/*
 // CAPÍTULO 5 - RETO 2/4: Tuple Structs, Unit-like Structs y Traits (Debug / Display)
 // Proyecto: safe_memory_buffer
 
@@ -65,4 +65,53 @@ fn main() {
     // ERRORES VERIFICADOS (Comentados):
     // conectar(Latencia(8080));     // Falla E0308: Mismatched Types
     // println!("{}", Puerto(8080));  // Falla E0277: Missing Display trait
+}
+*/
+
+// CAPÍTULO 5 - RETO 3/4: Métodos vs Funciones Asociadas y Ownership
+// Proyecto: safe_memory_buffer
+
+struct Contador {
+    valor: u32,
+}
+
+impl Contador {
+    fn nuevo() -> Self {
+        Self { valor: 0 }
+    }
+
+    fn valor(&self) -> u32 {
+        self.valor
+    }
+
+    fn incrementar(&mut self) {
+        self.valor += 1;
+    }
+
+    fn consumir(self) -> u32 {
+        self.valor
+    }
+}
+
+fn main() {
+    println!("-- Reto 3/4: Métodos y Ownership --");
+
+    // PASO A: Instancia mutable, incremento y lectura con &self
+    let mut c = Contador::nuevo();
+    c.incrementar();
+    println!("Valor de c: {}", c.valor());
+
+    // PASO B: Consumir (Move) y posterior intento de lectura
+    //let n = c.consumir();
+    //println!("{} {}", n, c.valor());
+
+    // PASO C: Variable inmutable llamando a un método que requiere &mut self
+    //let c = Contador::nuevo();
+    //c.incrementar();
+    //println!("Valor de c: {}", c.valor());
+
+    // PASO D: Intentar llamar a una función asociada (sin self) como método
+    c.nuevo();
+
+    println!("Valor de c: {}", c.valor());
 }
