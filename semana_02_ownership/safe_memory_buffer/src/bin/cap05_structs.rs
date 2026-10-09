@@ -67,7 +67,7 @@ fn main() {
     // println!("{}", Puerto(8080));  // Falla E0277: Missing Display trait
 }
 */
-
+/*
 // CAPÍTULO 5 - RETO 3/4: Métodos vs Funciones Asociadas y Ownership
 // Proyecto: safe_memory_buffer
 
@@ -114,3 +114,84 @@ fn main() {
     //c.nuevo();
     //println!("Valor de c: {}", c.valor());
 }
+*/
+
+// CAPÍTULO 5 - RETO 4/4: Integración Arquitectónica y RAII (Drop Trait)
+// Proyecto: safe_memory_buffer
+
+// Newtype Pattern para el identificador de Buffer
+#[derive(Debug, Clone, Copy)]
+struct BufferId(u32);
+
+// Struct principal con campos con nombre
+struct BufferInspeccionado {
+    id: BufferId,
+    contenido: Vec<u8>,
+}
+
+impl BufferInspeccionado {
+    // 1. Función asociada (Constructor)
+    fn nuevo(id: u32, datos_iniciales: &[u8]) -> Self {
+        Self {
+            id: BufferId(id),
+            contenido: datos_iniciales.to_vec(),
+        }
+    }
+
+    // 2. Método con préstamo inmutable (&self): Consulta de tamaño
+    fn tamano(&self) -> usize {
+        self.contenido.len()
+    }
+
+    // 3. Método con préstamo mutable (&mut self): Extensión del contenido
+    fn escribir(&mut self, datos: &[u8]) {
+        self.contenido.extend_from_slice(datos);
+    }
+
+    // 4. Método que consume la instancia (self): Finalizar y devolver tamaño
+    fn finalizar(self) -> usize {
+        println!(
+            "  [finalizar] Procesando y consumiendo Buffer #{:?}...",
+            self.id
+        );
+        self.contenido.len()
+        // `self` sale de ámbito AQUÍ y ejecuta `Drop`
+    }
+}
+
+// Implementación del trait Drop para observar el ciclo de vida (RAII)
+impl Drop for BufferInspeccionado {
+    fn drop(&mut self) {
+        println!("---> [DROP] Liberando Buffer #{:?} de la memoria", self.id);
+    }
+}
+
+fn main() {
+    println!("-- Reto 4/4: Demostración de Scopes y Drop --\n");
+
+    // Buffer 1: Sobrevivirá hasta el final de main()
+    let mut buf1 = BufferInspeccionado::nuevo(1, b"Hola ");
+    buf1.escribir(b"Rust!");
+    println!("Buf1 (ID 1) creado. Tamaño actual: {} bytes", buf1.tamano());
+
+    // Scope anidado
+    {
+        println!("\n--- Entrando al Scope Anidado ---");
+        let buf2 = BufferInspeccionado::nuevo(2, b"Datos Temporales");
+        println!(
+            "Buf2 (ID 2) dentro del scope. Tamaño: {} bytes",
+            buf2.tamano()
+        );
+        println!("--- Saliendo del Scope Anidado ---");
+    } // buf2 debe destruirse AQUÍ
+
+    println!("\n--- De regreso en main() ---");
+
+    // Buffer 3: Consumido por el método finalizar(self)
+    let buf3 = BufferInspeccionado::nuevo(3, b"Buffer Final");
+    println!("Buf3 (ID 3) creado. Invocando finalizar()...");
+    let bytes_procesados = buf3.finalizar(); // buf3 debe destruirse DENTRO de esta llamada
+    println!("Bytes devueltos por finalizar(): {}", bytes_procesados);
+
+    println!("\n--- Finalizando main() ---");
+} // buf1 debe destruirse AQUÍ
