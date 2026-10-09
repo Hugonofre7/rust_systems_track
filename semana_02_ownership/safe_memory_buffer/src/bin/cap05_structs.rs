@@ -111,7 +111,6 @@ fn main() {
     //println!("Valor de c: {}", c.valor());
 
     // PASO D: Intentar llamar a una función asociada (sin self) como método
-    c.nuevo();
-
-    println!("Valor de c: {}", c.valor());
+    //c.nuevo();
+    //println!("Valor de c: {}", c.valor());
 }
