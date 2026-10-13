@@ -1,0 +1,1 @@
+/Users/hugonofre7/Projects/Rust/rust_systems_track/semana_03_modelado_datos/resilient_cli_parser/target/debug/cap06_enums: /Users/hugonofre7/Projects/Rust/rust_systems_track/semana_03_modelado_datos/resilient_cli_parser/src/bin/cap06_enums.rs
