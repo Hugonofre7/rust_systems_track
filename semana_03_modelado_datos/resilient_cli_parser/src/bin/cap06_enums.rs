@@ -71,7 +71,7 @@ fn main() {
     // println!("Primer argumento: {}", a);
 }
 */
-
+/*
 // CAPÍTULO 6 - RETO 3/4: Exhaustividad del match, Orden de Ramas y Guards
 // Proyecto: resilient_cli_parser
 
@@ -127,4 +127,59 @@ fn main() {
     // Prueba 3: Movimiento con coordenadas positivas (activará el guard)
     println!("\nPrueba 3:");
     ejecutar_comando(Comando::Mover { x: 5, y: 1 });
+}
+*/
+
+// CAPÍTULO 6 - RETO 4/4: Paso A - Parser de Línea de Comandos
+// Proyecto: resilient_cli_parser
+
+#[allow(dead_code)]
+#[derive(Debug)]
+enum Comando {
+    Ayuda,
+    Escribir(String),
+    Mover { x: i32, y: i32 },
+}
+
+fn parsear(args: &[String]) -> Option<Comando> {
+    let subcomando = args.get(1)?;
+
+    match subcomando.as_str() {
+        "ayuda" => Some(Comando::Ayuda),
+        "escribir" => {
+            // AQUÍ USAS LET ELSE: Si args.get(2) es None, retorna None inmediatamente
+            let Some(texto) = args.get(2) else {
+                return None;
+            };
+            Some(Comando::Escribir(texto.clone()))
+        }
+        "mover" => {
+            let x_str = args.get(2)?;
+            let y_str = args.get(3)?;
+            let x: i32 = x_str.parse().ok()?;
+            let y: i32 = y_str.parse().ok()?;
+            Some(Comando::Mover { x, y })
+        }
+        _ => None,
+    }
+}
+
+fn ejecutar(cmd: Comando) {
+    match cmd {
+        Comando::Ayuda => println!("> Ayuda: Uso del CLI..."),
+        Comando::Escribir(texto) => println!("> Escribir: {}", texto),
+        Comando::Mover { x, y } => println!("> Mover a x={}, y={}", x, y),
+    }
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
+    // Si parsear devuelve None, informamos y salimos con error (código 1)
+    let Some(cmd) = parsear(&args) else {
+        eprintln!("Uso: cargo run --bin cap06_enums -- <ayuda | escribir <texto> | mover <x> <y>>");
+        std::process::exit(1);
+    };
+
+    ejecutar(cmd);
 }
