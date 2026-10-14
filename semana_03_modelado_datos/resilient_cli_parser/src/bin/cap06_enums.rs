@@ -38,6 +38,7 @@ fn main() {
 }
 */
 
+/*
 // CAPÍTULO 6 - RETO 2/4: Option<T>, Match Ergonomics y Pánicos en Runtime
 // Proyecto: resilient_cli_parser
 
@@ -68,4 +69,62 @@ fn main() {
     // 2. Pánico en runtime por forzar unwrap sobre un valor None:
     // let a = primer_arg(&args).unwrap();
     // println!("Primer argumento: {}", a);
+}
+*/
+
+// CAPÍTULO 6 - RETO 3/4: Exhaustividad del match, Orden de Ramas y Guards
+// Proyecto: resilient_cli_parser
+
+#[allow(dead_code)]
+#[derive(Debug)]
+enum Comando {
+    Ayuda,
+    Salir,
+    Escribir(String),
+    Mover { x: i32, y: i32 },
+}
+
+fn ejecutar_comando(cmd: Comando) {
+    match cmd {
+        Comando::Ayuda => {
+            println!("> Mostrando ayuda general del sistema...");
+        }
+        Comando::Salir => {
+            println!("> Saliendo de la aplicación...");
+        }
+        Comando::Escribir(texto) => {
+            println!("> Escribiendo contenido: '{}'", texto);
+        }
+        // Rama general para cualquier otro movimiento
+        Comando::Mover { x, y } => {
+            println!("> Mover: Desplazamiento genérico a x={}, y={}", x, y);
+        }
+        // Caso específico para el origen (0, 0)
+        Comando::Mover { x: 0, y: 0 } => {
+            println!("> Mover: Ya estamos en el origen (0, 0).");
+        }
+        // Guard (filtro con if) para cuando x e y son positivos
+        Comando::Mover { x, y } if x > 0 && y > 0 => {
+            println!(
+                "> Mover: Desplazamiento en cuadrante positivo a x={}, y={}",
+                x, y
+            );
+        }
+    }
+}
+
+fn main() {
+    println!("-- Reto 3/4: Exhaustividad y Match Guards --\n");
+
+    // Prueba 1: Movimiento con x negativo (caerá en la rama general)
+    println!("Prueba 1:");
+    ejecutar_comando(Comando::Mover { x: -3, y: 2 });
+
+    // Prueba 2: Movimiento en el origen (caerá en la rama específica 0,0)
+    println!("\nPrueba 2:");
+    ejecutar_comando(Comando::Mover { x: 0, y: 0 });
+
+    // Prueba 3: Movimiento con coordenadas positivas (activará el guard)
+    println!("\nPrueba 3:");
+    ejecutar_comando(Comando::Mover { x: 5, y: 1 });
 }
