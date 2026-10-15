@@ -1,0 +1,1 @@
+/Users/hugonofre7/Projects/Rust/rust_systems_track/semana_03_modelado_datos/resilient_cli_parser/target/debug/cap08_collections: /Users/hugonofre7/Projects/Rust/rust_systems_track/semana_03_modelado_datos/resilient_cli_parser/src/bin/cap08_collections.rs
