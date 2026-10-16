@@ -68,3 +68,70 @@ fn main() {
     println!("{:?}", s.get(6..7));
     let c = s[0];
 }
+*/
+
+/*
+use std::collections::HashMap;
+
+fn main() {
+    let mut cuenta: HashMap<String, u32> = HashMap::new();
+    let clave = String::from("escribir");
+    cuenta.insert(clave, 1); // clave se MUEVE al mapa
+    *cuenta.entry(String::from("escribir")).or_insert(0) += 1; // existe: suma 1
+    *cuenta.entry(String::from("mover")).or_insert(0) += 1; // no existe: inserta 0, suma 1
+    println!("{:?}", cuenta.get("escribir")); // get acepta &str
+    println!("{:?}", cuenta.get("ayuda"));
+    println!("{}", cuenta.len());
+    //println!("{}", clave);
+
+    // --- NUEVAS INSERCIONES (Paso C) ---
+    cuenta.insert(String::from("uno"), 10);
+    cuenta.insert(String::from("dos"), 20);
+    cuenta.insert(String::from("tres"), 30);
+    cuenta.insert(String::from("cuatro"), 40);
+    cuenta.insert(String::from("cinco"), 50);
+
+    println!("{:?}", cuenta);
+}
+*/
+
+// CAPÍTULO 8 - RETO 4/4: HashMap y API entry
+// Proyecto: resilient_cli_parser
+
+use std::collections::HashMap;
+
+// Función que recibe los argumentos y devuelve un HashMap con las frecuencias
+fn contar_argumentos(args: &[String]) -> HashMap<String, u32> {
+    let mut conteo = HashMap::new();
+    for arg in args {
+        *conteo.entry(arg.clone()).or_insert(0) += 1;
+    }
+    conteo
+}
+
+// Función para imprimir el mapa en orden alfabético estable
+fn imprimir_ordenado(conteo: &HashMap<String, u32>) {
+    // 1. Extraemos las claves en un vector
+    let mut claves: Vec<&String> = conteo.keys().collect();
+
+    // 2. Ordenamos el vector de referencias a claves
+    claves.sort();
+
+    // 3. Iteramos de forma ordenada para mostrar resultados estables
+    println!("--- Frecuencias Ordenadas ---");
+    for clave in claves {
+        if let Some(freq) = conteo.get(clave) {
+            println!("{}: {}", clave, freq);
+        }
+    }
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
+    let argumentos_a_procesar = if args.len() > 1 { &args[1..] } else { &[] };
+
+    let resultado = contar_argumentos(argumentos_a_procesar);
+    //println!("{:?}", resultado);
+    imprimir_ordenado(&resultado);
+}
