@@ -52,7 +52,7 @@ fn main() {
     */
 }
 */
-
+/*
 // CAPÍTULO 8 - RETO 3/4: Strings, UTF-8, Bytes vs Caracteres y Slicing Seguro
 // Proyecto: resilient_cli_parser
 
