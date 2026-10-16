@@ -15,7 +15,7 @@ fn main() {
     }
 }
 */
-
+/*
 // CAPÍTULO 8 - RETO 2/4: Acceso Seguro con get(), Pánicos y Semántica de Movimiento
 // Proyecto: resilient_cli_parser
 
@@ -50,4 +50,21 @@ fn main() {
     }
     println!("{}", v.len());
     */
+}
+*/
+
+// CAPÍTULO 8 - RETO 3/4: Strings, UTF-8, Bytes vs Caracteres y Slicing Seguro
+// Proyecto: resilient_cli_parser
+
+fn main() {
+    let s = String::from("Hola, ñandú");
+    println!("{} {}", s.len(), s.chars().count());
+    println!("{:?}", s.chars().nth(6));
+    let corte = &s[0..4];
+    println!("{}", corte);
+    let t = String::from("ñ");
+    println!("{}", t.len());
+    //println!("{}", &s[6..7]);
+    println!("{:?}", s.get(6..7));
+    let c = s[0];
 }
