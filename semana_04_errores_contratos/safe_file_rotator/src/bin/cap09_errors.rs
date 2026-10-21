@@ -50,6 +50,9 @@ fn main() -> Result<(), std::io::Error> {
 }
 */
 
+// CAPÍTULO 9 - RETO 3/4: Tipo de error propio y conversión con From
+// Proyecto: safe_file_rotator
+/*
 use std::{fs::File, io};
 
 //#[derive(Debug)]
@@ -100,5 +103,78 @@ fn main() {
 
     if let Err(e) = abrir("no_existe.log") {
         println!("{}", e);
+    }
+}
+*/
+
+use std::{fs::File, io, process::ExitCode};
+
+#[derive(Debug)]
+enum ErrorRotador {
+    RutaVacia, // <--- Faltaba agregar esta variante aquí
+    Io { ruta: String, fuente: io::Error },
+}
+
+// PASO A: Nuevo Display adaptado para la variante con campos con nombre y RutaVacia
+impl std::fmt::Display for ErrorRotador {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorRotador::RutaVacia => write!(f, "la ruta del archivo está vacía"),
+            ErrorRotador::Io { ruta, fuente } => {
+                write!(f, "{}: {}", ruta, fuente)
+            }
+        }
+    }
+}
+
+// Paso D.1: Función abrir con validación de ruta vacía y contexto de I/O
+fn abrir(ruta: &str) -> Result<File, ErrorRotador> {
+    if ruta.is_empty() {
+        return Err(ErrorRotador::RutaVacia);
+    }
+    File::open(ruta).map_err(|e| ErrorRotador::Io {
+        ruta: ruta.to_string(),
+        fuente: e,
+    })
+}
+
+// Paso D.2: Función rotar que renombra ruta a ruta + ".1" con contexto
+fn rotar(ruta: &str) -> Result<(), ErrorRotador> {
+    if ruta.is_empty() {
+        return Err(ErrorRotador::RutaVacia);
+    }
+    let destino = format!("{}.1", ruta);
+    std::fs::rename(ruta, &destino).map_err(|e| ErrorRotador::Io {
+        ruta: format!("{} -> {}", ruta, destino),
+        fuente: e,
+    })
+}
+struct GuardianRecurso;
+
+impl Drop for GuardianRecurso {
+    fn drop(&mut self) {
+        println!("-> ¡Se ejecutó el Drop! (Liberando recursos limpiamente)");
+    }
+}
+
+fn main() -> ExitCode {
+    // Prueba 1: Ruta vacía (debería dar error RutaVacia -> código 1)
+    // Prueba 2: Archivo inexistente (debería dar error Io -> código 2)
+    let ruta_a_probar = "no_existe.log"; // Cambia a "" para probar RutaVacia
+
+    match rotar(ruta_a_probar) {
+        Ok(_) => {
+            println!("¡Rotación exitosa!");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("error de rotación: {e}");
+            match e {
+                ErrorRotador::RutaVacia => ExitCode::from(1),
+                ErrorRotador::Io { .. } => ExitCode::from(2),
+            }
+            // Terminación abrupta del proceso a nivel de SO
+            //std::process::exit(2);
+        }
     }
 }
