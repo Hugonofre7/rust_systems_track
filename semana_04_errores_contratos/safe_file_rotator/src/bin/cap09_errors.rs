@@ -107,6 +107,9 @@ fn main() {
 }
 */
 
+// CAPÍTULO 9 - RETO 4/4: Manejo avanzado de errores, contexto, Drop y ExitCode
+// Proyecto: safe_file_rotator
+
 use std::{fs::File, io, process::ExitCode};
 
 #[derive(Debug)]
