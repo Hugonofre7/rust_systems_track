@@ -63,6 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 */
 
+/*
 // CAPÍTULO 10 - RETO 2/4: Genéricos, Traits Bounds y Monomorfización
 // Proyecto: safe_file_rotator
 
@@ -138,3 +139,46 @@ fn main() {
     };
     imprimir_cadena(&err_io);
 }
+*/
+
+// CAPÍTULO 10 - RETO 3/4 (Paso A): Lifetimes y Referencias
+// Proyecto: safe_file_rotator
+
+// 1. Extraer nombre de archivo (Elisión automática de lifetimes: 1 entrada -> 1 salida)
+fn nombre_archivo(ruta: &str) -> &str {
+    ruta.rsplit('/').next().unwrap_or(ruta)
+}
+
+// 2. Ruta o defecto (Múltiples entradas: requiere lifetimes explícitos 'a)
+fn ruta_o_defecto<'a>(ruta: &'a str, defecto: &'a str) -> &'a str {
+    if ruta.is_empty() { defecto } else { ruta }
+}
+
+fn main() {
+    let ruta_completa = "/var/log/safe_file_rotator/app.log";
+    let archivo = nombre_archivo(ruta_completa);
+    println!("Nombre del archivo extraído: {}", archivo);
+
+    let ruta_vacia = "";
+    let ruta_fallback = "default.log";
+    let resultado_ruta = ruta_o_defecto(ruta_vacia, ruta_fallback);
+    println!("Ruta final seleccionada: {}", resultado_ruta);
+}
+/*
+fn mas_larga<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() >= y.len() { x } else { y }
+}
+fn mas_larga(x: &str, y: &str) -> &str {
+if x.len() >= y.len() { x } else { y }
+}
+
+fn main() {
+    let a = String::from("rotador");
+    let resultado;
+    {
+        let b = String::from("log");
+        resultado = mas_larga(&a, &b);
+    }
+    println!("{}", resultado);
+}
+*/
