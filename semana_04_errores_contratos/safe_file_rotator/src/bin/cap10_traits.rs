@@ -143,7 +143,7 @@ fn main() {
 
 // CAPÍTULO 10 - RETO 3/4 (Paso A): Lifetimes y Referencias
 // Proyecto: safe_file_rotator
-
+/*
 // 1. Extraer nombre de archivo (Elisión automática de lifetimes: 1 entrada -> 1 salida)
 fn nombre_archivo(ruta: &str) -> &str {
     ruta.rsplit('/').next().unwrap_or(ruta)
@@ -182,3 +182,140 @@ fn main() {
     println!("{}", resultado);
 }
 */
+*/
+
+// CAPÍTULO 10 - RETO 4/4 (Paso A): Struct con Lifetimes y size_of
+// Proyecto: safe_file_rotator
+/*
+struct Ruta<'a> {
+    directorio: &'a str,
+    nombre: &'a str,
+}
+
+impl<'a> Ruta<'a> {
+    fn nueva(completa: &'a str) -> Ruta<'a> {
+        match completa.rsplit_once('/') {
+            Some((d, n)) => Ruta {
+                directorio: d,
+                nombre: n,
+            },
+            None => Ruta {
+                directorio: "",
+                nombre: completa,
+            },
+        }
+    }
+
+    fn nombre(&self) -> &str {
+        self.nombre
+    }
+}
+
+fn main() {
+    let texto = String::from("logs/app.log");
+    let r = Ruta::nueva(&texto);
+    //println!("{} | {}", r.directorio, r.nombre());
+    //println!("Tamaño de Ruta en bytes: {}", std::mem::size_of::<Ruta>());
+    // Destruimos el String original antes de usar la vista (Ruta)
+    drop(texto);
+
+    println!("Directorio: {} | Archivo: {}", r.directorio, r.nombre());
+}
+
+struct Ruta {
+    directorio: &str,
+    nombre: &str,
+}
+
+fn main() {
+    let texto = String::from("logs/app.log");
+    println!("Probando struct sin lifetime explícito");
+}
+*/
+
+use std::error::Error;
+use std::fmt;
+use std::io;
+use std::process::ExitCode;
+
+#[derive(Debug)]
+pub struct Ruta<'a> {
+    pub directorio: &'a str,
+    pub nombre: &'a str,
+}
+
+#[derive(Debug)]
+pub enum ErrorRotador {
+    RutaVacia,
+    Io { ruta: String, fuente: io::Error },
+}
+
+impl fmt::Display for ErrorRotador {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ErrorRotador::RutaVacia => write!(f, "la ruta del archivo está vacía"),
+            ErrorRotador::Io { ruta, fuente } => write!(f, "{ruta}: {fuente}"),
+        }
+    }
+}
+
+impl Error for ErrorRotador {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ErrorRotador::RutaVacia => None,
+            ErrorRotador::Io { fuente, .. } => Some(fuente),
+        }
+    }
+}
+
+impl<'a> Ruta<'a> {
+    pub fn nueva(completa: &'a str) -> Result<Ruta<'a>, ErrorRotador> {
+        if completa.is_empty() {
+            return Err(ErrorRotador::RutaVacia);
+        }
+        match completa.rsplit_once('/') {
+            Some((d, n)) => Ok(Ruta {
+                directorio: d,
+                nombre: n,
+            }),
+            None => Ok(Ruta {
+                directorio: "",
+                nombre: completa,
+            }),
+        }
+    }
+
+    pub fn nombre(&self) -> &str {
+        self.nombre
+    }
+
+    // Devuelve un String nuevo ya que el texto es generado (no puede retornar referencia local)
+    pub fn con_sufijo(&self, n: u32) -> String {
+        format!("{}.{}", self.nombre, n)
+    }
+}
+
+fn procesar_ruta(entrada: &str) -> Result<(), ErrorRotador> {
+    let r = Ruta::nueva(entrada)?;
+    println!("Directorio: '{}' | Archivo: '{}'", r.directorio, r.nombre());
+    println!("Archivo rotado: {}", r.con_sufijo(1));
+    Ok(())
+}
+
+fn main() -> ExitCode {
+    println!("--- Caso 1: Ruta válida ---");
+    let texto_valido = String::from("logs/app.log");
+    if let Err(e) = procesar_ruta(&texto_valido) {
+        println!("Error: {}", e);
+        return ExitCode::FAILURE;
+    }
+
+    println!("\n--- Caso 2: Ruta vacía ---");
+    let texto_vacio = String::from("");
+    if let Err(e) = procesar_ruta(&texto_vacio) {
+        println!("Error detectado: {}", e);
+        return ExitCode::SUCCESS;
+    }
+
+    ExitCode::SUCCESS
+}
