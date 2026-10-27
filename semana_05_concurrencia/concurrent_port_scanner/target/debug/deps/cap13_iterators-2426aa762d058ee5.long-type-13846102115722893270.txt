@@ -1,0 +1,1 @@
+Map<Filter<std::slice::Iter<'_, {integer}>, {closure@src/bin/cap13_iterators.rs:106:17: 106:20}>, {closure@src/bin/cap13_iterators.rs:107:14: 107:17}>

@@ -52,7 +52,7 @@ fn main() {
 */
 
 // CAPÍTULO 13 - RETO 1/4 (Paso D): Closures, Fn vs FnMut en el escáner
-
+/*
 fn contar_si<F: FnMut(u32) -> bool>(puertos: &[u32], mut criterio: F) -> usize {
     let mut contador = 0;
     for &p in puertos {
@@ -81,5 +81,51 @@ fn main() {
     println!(
         "Puertos filtrados: {}, Evaluados: {}",
         total_filtrados, puertos_evaluados
+    );
+}
+*/
+
+// CAPÍTULO 13 - RETO 2/4 (Paso A): Iteradores, adaptadores y consumo
+// Proyecto: concurrent_port_scanner
+// CAPÍTULO 13 - RETO 2/4 (Paso B): Quitar .collect()
+// CAPÍTULO 13 - RETO 2/4 (Paso C): Consumidor .sum()
+/*
+fn main() {
+    let puertos = vec![22, 80, 443, 8080, 3306];
+
+    //let v = puertos.iter().filter(|p| **p < 1024).map(|p| {
+    //    println!("proceso {}", p);
+    //    p * 2
+    //});
+
+    //println!("antes de consumir");
+
+    //let resultado: Vec<u32> = v.collect();
+    //println!("{:?}", resultado);
+    let total: u32 = puertos.iter().filter(|p| **p < 1024).map(|p| *p).sum();
+
+    println!("Suma total de puertos filtrados: {}", total);
+}
+*/
+// CAPÍTULO 13 - RETO 2/4 (Paso D - Sub-paso 1): Generar candidatos
+// Proyecto: concurrent_port_scanner
+
+fn candidatos(inicio: u32, fin: u32, excluidos: &[u32]) -> Vec<u32> {
+    (inicio..=fin).filter(|p| !excluidos.contains(p)).collect()
+}
+
+// 2. Función optimizada que solo cuenta al vuelo (sin reservar memoria)
+fn contar_candidatos(inicio: u32, fin: u32, excluidos: &[u32]) -> usize {
+    (inicio..=fin).filter(|p| !excluidos.contains(p)).count()
+}
+
+fn main() {
+    let lista = candidatos(20, 30, &[22, 25]);
+    println!("Candidatos: {:?}", lista);
+
+    let total = contar_candidatos(20, 30, &[22, 25]);
+    println!(
+        "Total de candidatos (sin clonar ni reservar Vec): {}",
+        total
     );
 }
