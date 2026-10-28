@@ -180,7 +180,7 @@ fn main() {
 
 // CAPÍTULO 13 - RETO 3: Variantes de Iteradores y Seguridad de Memoria
 // Proyecto: concurrent_port_scanner
-
+/*
 // 1. Modifica los puertos en sitio usando iter_mut() sobre un slice mutable
 fn aplicar_offset(puertos: &mut [u32], offset: u32) {
     for p in puertos.iter_mut() {
@@ -229,4 +229,82 @@ fn main() {
     aplicar_offset(&mut puertos_scanner, offset);
 
     println!("Después del offset (1000): [{}]", resumen(&puertos_scanner));
+}
+*/
+
+// CAPÍTULO 13 - RETO 4 (Paso A): Particionado con .chunks()
+// CAPÍTULO 13 - RETO 4 (Paso B): Comportamiento de .chunks(0)
+// CAPÍTULO 13 - RETO 4 (Paso C): Mutación prohibida durante chunks()
+// Proyecto: concurrent_port_scanner
+/*
+fn main() {
+    let puertos: Vec<u32> = (20..=30).collect();
+
+    for (_i, grupo) in puertos.chunks(4).enumerate() {
+        // Paso B: Intentamos usar chunks con tamaño 0
+        //for (i, grupo) in puertos.chunks(0).enumerate() {
+        let suma: u32 = grupo.iter().sum();
+        //println!("grupo {}: {:?} suma={}", i, grupo, suma);
+        println!("Suma: {}", suma);
+        // Paso C: Intentamos mutar el vector mientras chunks() mantiene un préstamo inmutable
+        puertos.push(1);
+    }
+
+    //let total = puertos.chunks(4).count();
+    //println!("{} grupos", total);
+}
+*/
+
+// =====================================================================
+// CAPÍTULO 13 - RETO 4 (Paso D): Repartición de trabajo y Concurrencia
+// Proyecto: concurrent_port_scanner
+// =====================================================================
+
+// Reparte un slice de puertos entre N hilos usando chunks y redondeo hacia arriba
+
+// CAPÍTULO 13 - RETO 4 (Paso D): Repartición de trabajo y Concurrencia
+// Proyecto: concurrent_port_scanner
+
+fn repartir(puertos: &[u32], hilos: usize) -> Option<Vec<Vec<u32>>> {
+    if hilos == 0 {
+        return None;
+    }
+
+    // Cálculo seguro del tamaño de trozo redondeando hacia arriba
+    let chunk_size = (puertos.len() + hilos - 1) / hilos;
+    let chunk_size = if chunk_size == 0 { 1 } else { chunk_size };
+
+    let grupos: Vec<Vec<u32>> = puertos
+        .chunks(chunk_size)
+        .map(|chunk| chunk.to_vec())
+        .collect();
+
+    Some(grupos)
+}
+
+fn main() {
+    // 1. Generar candidatos de 1..=30 excluyendo [22, 25]
+    let candidatos: Vec<u32> = (1..=30).filter(|p| *p != 22 && *p != 25).collect();
+
+    // 2. Filtrar y contar usando un closure que captura limite = 24
+    let limite = 24;
+    let total_menores = candidatos.iter().filter(|&&p| p < limite).count();
+    println!("Candidatos menores a {}: {}\n", limite, total_menores);
+
+    // 3. Repartir los candidatos entre 4 hilos
+    let hilos = 4;
+    println!(
+        "Repartiendo {} puertos entre {} hilos:",
+        candidatos.len(),
+        hilos
+    );
+
+    match repartir(&candidatos, hilos) {
+        Some(grupos) => {
+            for (i, grupo) in grupos.iter().enumerate() {
+                println!("  -> Grupo/Hilo {}: {:?}", i, grupo);
+            }
+        }
+        None => println!("Error: El número de hilos no puede ser cero."),
+    }
 }
