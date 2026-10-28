@@ -109,7 +109,7 @@ fn main() {
 */
 // CAPÍTULO 13 - RETO 2/4 (Paso D - Sub-paso 1): Generar candidatos
 // Proyecto: concurrent_port_scanner
-
+/*
 fn candidatos(inicio: u32, fin: u32, excluidos: &[u32]) -> Vec<u32> {
     (inicio..=fin).filter(|p| !excluidos.contains(p)).collect()
 }
@@ -128,4 +128,105 @@ fn main() {
         "Total de candidatos (sin clonar ni reservar Vec): {}",
         total
     );
+}
+*/
+
+// CAPÍTULO 13 - RETO 3: Variantes de Iteradores (.iter, .iter_mut, .into_iter)
+// CAPÍTULO 13 - PASO B: into_iter() y el error de propiedad (E0382)
+// Proyecto: concurrent_port_scanner
+
+/*
+fn main() {
+    let mut puertos = vec![80, 443, 22];
+    /*
+    for p in puertos.iter() {
+    print!("{} ", p);
+    }
+    println!();
+
+    for p in puertos.iter_mut() {
+    *p += 1;
+    }
+    */
+
+    let propios: Vec<u32> = puertos.into_iter().map(|p| p * 2).collect();
+
+    println!("Puertos duplicados: {:?}", puertos);
+
+    // Paso B: Descomentamos el uso de puertos tras ser consumido
+    println!(
+        "Intentando usar 'puertos' después de into_iter: {:?}",
+        puertos
+    );
+
+    //let propios: Vec<u32> = puertos.into_iter().map(|p| p * 2).collect();
+    // println!("{:?}", propios);
+}
+*/
+
+// CAPÍTULO 13 - PASO C: Mutación concurrente y el Borrow Checker (E0502)
+// Proyecto: concurrent_port_scanner
+/*
+fn main() {
+    let mut puertos = vec![80, 443, 22];
+
+    // .iter() mantiene un préstamo inmutable activo de todo el vector
+    for p in puertos.iter() {
+        // Paso C: Intentamos mutar el vector mientras está prestado inmutablemente
+        puertos.push(*p);
+    }
+}
+*/
+
+// CAPÍTULO 13 - RETO 3: Variantes de Iteradores y Seguridad de Memoria
+// Proyecto: concurrent_port_scanner
+
+// 1. Modifica los puertos en sitio usando iter_mut() sobre un slice mutable
+fn aplicar_offset(puertos: &mut [u32], offset: u32) {
+    for p in puertos.iter_mut() {
+        *p += offset;
+    }
+}
+
+// 2. Devuelve un String con los puertos formateados usando iter() sobre un slice inmutable
+fn resumen(puertos: &[u32]) -> String {
+    let partes: Vec<String> = puertos.iter().map(|p| p.to_string()).collect();
+    partes.join(", ")
+}
+
+fn main() {
+    // -----------------------------------------------------------------
+    // Demostración conceptual de las 3 variantes de iteradores
+    // -----------------------------------------------------------------
+    let mut puertos = vec![80, 443, 22];
+
+    // A) .iter(): Préstamo inmutable (&u32)
+    print!("Puertos iniciales: ");
+    for p in puertos.iter() {
+        print!("{} ", p);
+    }
+    println!();
+
+    // B) .iter_mut(): Préstamo mutable (&mut u32) - Modificación en sitio
+    for p in puertos.iter_mut() {
+        *p += 1;
+    }
+    println!("Puertos modificados (iter_mut): {:?}", puertos);
+
+    // C) .into_iter(): Consumo por valor (u32) - Mueve la propiedad del Vec
+    let propios: Vec<u32> = puertos.into_iter().map(|p| p * 2).collect();
+    println!("Puertos duplicados (into_iter): {:?}", propios);
+
+    // -----------------------------------------------------------------
+    // Aplicación arquitectónica para el concurrent_port_scanner
+    // -----------------------------------------------------------------
+    println!("\n--- Aplicación en el escáner ---");
+    let mut puertos_scanner = vec![22, 80];
+    let offset = 1000;
+
+    println!("Antes del offset: [{}]", resumen(&puertos_scanner));
+
+    aplicar_offset(&mut puertos_scanner, offset);
+
+    println!("Después del offset (1000): [{}]", resumen(&puertos_scanner));
 }
