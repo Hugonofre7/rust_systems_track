@@ -300,7 +300,7 @@ fn main() -> io::Result<()> {
 
 // CAPÍTULO 20 - RETO 4: Construcción del Thread Pool
 // Proyecto: rust_http_server
-
+/*
 use std::{
     fmt,
     io::{self, Read, Write},
@@ -516,5 +516,147 @@ fn main() -> io::Result<()> {
 
     // Esperamos medio segundo para ver qué imprimen los obreros
     thread::sleep(Duration::from_millis(500));
+    Ok(())
+}
+*/
+
+// CAPÍTULO 20 - RETO 5: Cierre ordenado y elegante con Drop
+// Proyecto: rust_http_server
+
+use std::{
+    fmt, fs,
+    io::{self, Read, Write, prelude::*},
+    net::{TcpListener, TcpStream},
+    sync::{Arc, Mutex, mpsc},
+    thread,
+    time::{Duration, Instant},
+};
+
+type Trabajo = Box<dyn FnOnce() + Send + 'static>;
+
+// Estructura Obrero para gestionar cada hilo individualmente con Option
+struct Obrero {
+    id: usize,
+    hilo: Option<thread::JoinHandle<()>>,
+}
+
+impl Obrero {
+    fn nuevo(id: usize, receptor: Arc<Mutex<mpsc::Receiver<Trabajo>>>) -> Obrero {
+        let hilo = thread::spawn(move || {
+            loop {
+                let mensaje = {
+                    let rx = receptor.lock().unwrap();
+                    rx.recv()
+                };
+
+                match mensaje {
+                    Ok(trabajo) => {
+                        println!("Obrero {id} recibió un trabajo; ejecutando.");
+                        trabajo();
+                    }
+                    Err(_) => {
+                        println!("Obrero {id} desconectado; terminando.");
+                        break;
+                    }
+                }
+            }
+        });
+
+        Obrero {
+            id,
+            hilo: Some(hilo),
+        }
+    }
+}
+
+pub struct ThreadPool {
+    obreros: Vec<Obrero>,
+    emisor: Option<mpsc::Sender<Trabajo>>,
+    //emisor: mpsc::Sender<Trabajo>, // Sin Option
+}
+
+impl ThreadPool {
+    pub fn nuevo(tamano: usize) -> Result<ThreadPool, &'static str> {
+        assert!(tamano > 0);
+
+        let (emisor, receptor) = mpsc::channel();
+        let receptor = Arc::new(Mutex::new(receptor));
+
+        let mut obreros = Vec::with_capacity(tamano);
+        for id in 0..tamano {
+            obreros.push(Obrero::nuevo(id, Arc::clone(&receptor)));
+        }
+
+        Ok(ThreadPool {
+            obreros,
+            emisor: Some(emisor),
+        })
+    }
+    pub fn ejecutar<F>(&self, f: F)
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        let trabajo = Box::new(f);
+        self.emisor.as_ref().unwrap().send(trabajo).unwrap();
+    }
+}
+
+// Implementación del Drop unificada para asegurar un cierre limpio y ordenado
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        // 1. Cerramos el canal tomando el emisor. (Comenta esta línea si quieres probar el Paso B de deadlock)
+        drop(self.emisor.take());
+
+        println!("Cerrando el emisor del pool. Esperando a los obreros...");
+
+        // 2. Hacemos join de cada hilo de forma segura usando Option::take
+        for obrero in &mut self.obreros {
+            println!("Apagando obrero {}", obrero.id);
+            if let Some(hilo) = obrero.hilo.take() {
+                let _ = hilo.join();
+            }
+        }
+    }
+}
+
+// Lógica de enrutamiento y respuestas
+fn respuesta(texto: &str) -> String {
+    // Aquí mantienes tu lógica de parseo y rutas (/lento, /panico, etc.)
+    let estado = "HTTP/1.1 200 OK";
+    let cuerpo = "hola";
+    format!(
+        "{}\r\nContent-Length: {}\r\n\r\n{}",
+        estado,
+        cuerpo.len(),
+        cuerpo
+    )
+}
+
+fn manejar(mut flujo: TcpStream) -> io::Result<()> {
+    let mut buffer = [0; 1024];
+    flujo.read(&mut buffer)?;
+
+    let respuesta_http = respuesta(&String::from_utf8_lossy(&buffer[..]));
+    flujo.write_all(respuesta_http.as_bytes())?;
+    flujo.flush()?;
+    Ok(())
+}
+
+fn main() -> io::Result<()> {
+    let oyente = TcpListener::bind("127.0.0.1:7878")?;
+    println!("Servidor enlazado en http://127.0.0.1:7878");
+
+    let pool = ThreadPool::nuevo(2).unwrap();
+
+    for flujo in oyente.incoming().take(2) {
+        let flujo = flujo?;
+        pool.ejecutar(move || {
+            if let Err(e) = manejar(flujo) {
+                eprintln!("Error al procesar la conexión: {}", e);
+            }
+        });
+    }
+
+    println!("Fin de main, destruyendo pool...");
     Ok(())
 }
