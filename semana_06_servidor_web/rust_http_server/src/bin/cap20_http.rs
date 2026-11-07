@@ -521,12 +521,16 @@ fn main() -> io::Result<()> {
 */
 
 // CAPÍTULO 20 - RETO 5: Cierre ordenado y elegante con Drop
+// CAPÍTULO 20 - RETO 6: Blindaje de producción, timeouts y catch_unwind
 // Proyecto: rust_http_server
 
+use std::process::ExitCode;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::{
     fmt, fs,
     io::{self, Read, Write, prelude::*},
     net::{TcpListener, TcpStream},
+    panic::{AssertUnwindSafe, catch_unwind},
     sync::{Arc, Mutex, mpsc},
     thread,
     time::{Duration, Instant},
@@ -552,7 +556,15 @@ impl Obrero {
                 match mensaje {
                     Ok(trabajo) => {
                         println!("Obrero {id} recibió un trabajo; ejecutando.");
-                        trabajo();
+                        //trabajo();
+                        // --- CAMBIO DE R6: Envolvemos el trabajo con catch_unwind ---
+                        let resultado = catch_unwind(AssertUnwindSafe(trabajo));
+                        if let Err(_) = resultado {
+                            eprintln!(
+                                "¡Atención! Un trabajo en el obrero {} hizo panic!, pero el hilo sobrevivió.",
+                                id
+                            );
+                        }
                     }
                     Err(_) => {
                         println!("Obrero {id} desconectado; terminando.");
@@ -631,7 +643,81 @@ fn respuesta(texto: &str) -> String {
         cuerpo
     )
 }
+// Función auxiliar para leer cabeceras byte a byte de forma incremental con límite de 8 KiB
+fn leer_cabeceras(flujo: &mut TcpStream) -> io::Result<Vec<u8>> {
+    let mut buffer = Vec::new();
+    let mut un_byte = [0; 1];
+    const LIMITE_8Kib: usize = 8192;
 
+    loop {
+        match flujo.read_exact(&mut un_byte) {
+            Ok(_) => {
+                buffer.push(un_byte[0]);
+
+                // Verificamos si sobrepasamos los 8 KiB
+                if buffer.len() > LIMITE_8Kib {
+                    return Err(io::Error::new(
+                        io::ErrorKind::FileTooLarge,
+                        "Cabeceras demasiado grandes (431)",
+                    ));
+                }
+
+                // Verificamos si ya encontramos el final de las cabeceras: \r\n\r\n
+                if buffer.ends_with(b"\r\n\r\n") {
+                    break;
+                }
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Ok(buffer)
+}
+
+// 1. Firma correcta que recibe el flujo y la bandera atómica compartida
+fn manejar_conexion(mut flujo: TcpStream, flag_apagado: Arc<AtomicBool>) -> io::Result<()> {
+    flujo.set_read_timeout(Some(Duration::from_secs(2)))?;
+    flujo.set_write_timeout(Some(Duration::from_secs(2)))?;
+
+    // Leemos las cabeceras con nuestro límite blindado de 8 KiB (Paso C)
+    let cabeceras = match leer_cabeceras(&mut flujo) {
+        Ok(c) => c,
+        Err(e) if e.kind() == io::ErrorKind::FileTooLarge => {
+            let respuesta_431 = "HTTP/1.1 431 Request Header Fields Too Large\r\nContent-Length: 39\r\n\r\n431 Request Header Fields Too Large";
+            flujo.write_all(respuesta_431.as_bytes())?;
+            flujo.flush()?;
+            return Ok(());
+        }
+        Err(e) => return Err(e),
+    };
+
+    let peticion_str = String::from_utf8_lossy(&cabeceras);
+
+    // 2. Verificamos si se solicitó apagar el servidor (Paso D)
+    if peticion_str.starts_with("GET /apagar") {
+        flag_apagado.store(true, Ordering::SeqCst);
+
+        let cuerpo = "Servidor apagándose...";
+        let respuesta_http = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
+            cuerpo.len(),
+            cuerpo
+        );
+        flujo.write_all(respuesta_http.as_bytes())?;
+        flujo.flush()?;
+
+        // Truco para despertar el listener.incoming() bloqueado en el accept()
+        let _ = TcpStream::connect("127.0.0.1:7878");
+        return Ok(());
+    }
+
+    // 3. Procesamiento normal de las demás rutas (/, /panico, etc.)
+    let respuesta_http = respuesta(&peticion_str);
+    flujo.write_all(respuesta_http.as_bytes())?;
+    flujo.flush()?;
+
+    Ok(())
+}
+/*
 fn manejar(mut flujo: TcpStream) -> io::Result<()> {
     let mut buffer = [0; 1024];
     flujo.read(&mut buffer)?;
@@ -641,22 +727,59 @@ fn manejar(mut flujo: TcpStream) -> io::Result<()> {
     flujo.flush()?;
     Ok(())
 }
+*/
 
-fn main() -> io::Result<()> {
-    let oyente = TcpListener::bind("127.0.0.1:7878")?;
+fn manejar(mut flujo: TcpStream) -> io::Result<()> {
+    // --- CAMBIO DE R6: Timeouts de seguridad (2 segundos) ---
+    flujo.set_read_timeout(Some(Duration::from_secs(2)))?;
+    flujo.set_write_timeout(Some(Duration::from_secs(2)))?;
+    // --------------------------------------------------------
+
+    let mut buffer = [0; 1024];
+    flujo.read(&mut buffer)?;
+
+    let respuesta_http = respuesta(&String::from_utf8_lossy(&buffer[..]));
+    flujo.write_all(respuesta_http.as_bytes())?;
+    flujo.flush()?;
+    Ok(())
+}
+
+fn main() -> ExitCode {
+    let listener = match TcpListener::bind("127.0.0.1:7878") {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Error crítico: No se pudo enlazar el puerto 7878: {e}");
+            return ExitCode::FAILURE; // Retorna 1 si el puerto está ocupado
+        }
+    };
+
+    let apagado_solicitado = Arc::new(AtomicBool::new(false));
+    let flag_apagado = Arc::clone(&apagado_solicitado);
+
     println!("Servidor enlazado en http://127.0.0.1:7878");
 
-    let pool = ThreadPool::nuevo(2).unwrap();
+    // Desempaquetamos de forma segura el ThreadPool
+    let pool = ThreadPool::nuevo(4).expect("Error al crear el ThreadPool");
 
-    for flujo in oyente.incoming().take(2) {
-        let flujo = flujo?;
+    for flujo in listener.incoming() {
+        if flag_apagado.load(Ordering::SeqCst) {
+            break;
+        }
+
+        let flujo = match flujo {
+            Ok(f) => f,
+            Err(_) => break,
+        };
+
+        let flag_clon = Arc::clone(&apagado_solicitado);
         pool.ejecutar(move || {
-            if let Err(e) = manejar(flujo) {
-                eprintln!("Error al procesar la conexión: {}", e);
+            // Pasamos ambos argumentos requeridos
+            if let Err(e) = manejar_conexion(flujo, flag_clon) {
+                eprintln!("Error al procesar la conexión: {e}");
             }
         });
     }
 
     println!("Fin de main, destruyendo pool...");
-    Ok(())
+    ExitCode::SUCCESS // <-- ¡Añade esto aquí para retornar 0 al salir limpiamente!
 }
